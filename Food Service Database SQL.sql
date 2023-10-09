@@ -94,49 +94,7 @@ SELECT userid,product_id,Order_date FROM
 on a.userid = b.userid and Order_date<Gold_signup_date) a) b
 WHERE rnk = 1;
 
-# Q8 - What is the total no. of orders and total amount spent by the customer just before they became gold member ? 
-SELECT userid, count(Order_date) TotaL_Orders, sum(price) Total_Amount_Spent FROM
-(SELECT c.*, d.price FROM
-(SELECT a.userid,a.product_id,a.Order_date,b.gold_signup_date FROM Sales a INNER JOIN goldusers_signup b 
-on a.userid = b.userid and Order_date<Gold_signup_date) c INNER JOIN Product d on c.product_id = d.product_id) e
-group by userid;
 
-
-
-# Q9 - If buying each product generates points for ex: 5Rs = 2 Swiggy points and each product has different purchasing points for ex: for p1 5Rs = 1 Swiggy point, for p2 10Rs = 5 Swiggy point and p3 5Rs = 1 Swiggy point, 2Rs = 1 Swiggy point,                                                            
-#Calculate 1)points collected by each customer and 2)for which product most points have been given till now. 
-# 1.total points by customers
-SELECT userid, sum(total_points) as Total_points_earned FROM
-(SELECT e.*,amt/points as total_points FROM
-(SELECT d.*, case when product_id=1 then 5 when product_id=2 then 2 when product_id=3 then 5 else 0 end as points FROM
-(SELECT c.userid, c.product_id, sum(price) amt FROM
-(SELECT a.*, b.price FROM Sales a INNER JOIN Product b on a.product_id=b.product_id)c 
-group by userid,product_id order by userid,product_id)d)e)f
-group by userid;
-
-# 2. product with most points
-SELECT h.* FROM
-(SELECT g.*,rank() over(order by Total_points_earned desc) rnk FROM
-(SELECT product_id, sum(total_points) as Total_points_earned FROM
-(SELECT e.*,amt/points as total_points FROM
-(SELECT d.*, case when product_id=1 then 5 when product_id=2 then 2 when product_id=3 then 5 else 0 end as points FROM
-(SELECT c.userid, c.product_id, sum(price) amt FROM
-(SELECT a.*, b.price FROM Sales a INNER JOIN Product b on a.product_id=b.product_id)c 
-group by userid,product_id order by userid,product_id)d)e)f
-group by product_id)g)h
-where rnk=1;
-
-
-
-# Q10 - In the first year after a customer joins the gold program (including the join date ) irrespective of what customer has purchased earn 5 Swiggy points for every 10Rs spent. Who earned more 101,103 or 120 what was their points earning in first year ? 1sp = 2Rs 
-SELECT c.*,d.price/2 as Total_points_earned FROM
-(SELECT a.userid,a.product_id,a.Order_date,b.gold_signup_date FROM Sales a INNER JOIN goldusers_signup b on a.userid=b.userid AND Order_date>=Gold_signup_date and a.Order_date<=DATE_ADD(Gold_signup_date, INTERVAL 1 YEAR))c INNER JOIN product d on c.product_id = d.Product_id;
-
-
-# Q11 - Rank all transaction of the customers.
+# Q8 - Rank all transaction of the customers.
 SELECT *,rank() over(partition by userid order by Order_date) rnk from Sales;
 
-# Q12 - Rank all transaction for each member whenever they are Swiggy gold member for every non gold member transaction mark as NA.
-SELECT d.*, case when rnk=0 then 'na' else rnk end as rnkk FROM 
-(SELECT c.*, cast((case when gold_signup_date is null then 0 else rank()over(partition by userid order by Order_date desc) end) as char(2)) as rnk FROM
-(SELECT a.userid,a.product_id,a.Order_date,b.gold_signup_date FROM Sales a LEFT JOIN Goldusers_signup b on a.userid=b.userid and Order_date>=gold_signup_date)c)d;
